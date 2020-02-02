@@ -14,6 +14,7 @@ import getopt
 # for row in rows:
 #     line = [ col.value for col in row ]
 
+#######################3
 # @berif 提取列数据
 # file_name               文件
 # page_index           表索引
@@ -35,7 +36,7 @@ def fetch_line( file_name ,page_index ,line_index,line_mode):
     # 行列的最大访问范围
     if line_mode == 'row':
         max_limit = sheet.max_row
-    elif line_mode == 'column':
+    elif line_mode == 'col':
         max_limit = sheet.max_column
     else:
         line_mode == 'row'
@@ -49,7 +50,7 @@ def fetch_line( file_name ,page_index ,line_index,line_mode):
                 cnt = cnt + 1
                 if cnt == line_index:
                     return [ col.value for col in row ]            
-        elif line_mode == 'column':
+        elif line_mode == 'col':
             columns = sheet.columns
             cnt = 0 
             for column in columns:
@@ -61,6 +62,7 @@ def fetch_line( file_name ,page_index ,line_index,line_mode):
         return None
 
 ##########################
+# @berif 将输入行列的内容追加到输出文件
 # sheet : 指定表
 # line_context，添加内容
 # line_mode,添加模式，行/列
@@ -71,7 +73,7 @@ def append_line(sheet,line_context,line_mode):
             row = sheet.max_row + 1
             for i in  range(  len( line_context )  ):
                 sheet.cell( row ,i+1).value = line_context[i]
-        elif line_mode == 'column':
+        elif line_mode == 'col':
             # 按列模式添加
             column = sheet.max_column + 1
             for i in  range(  len( line_context )  ):
@@ -80,14 +82,20 @@ def append_line(sheet,line_context,line_mode):
             print (' 写入模式无效 ')
     print (file,'......OK')
 
+############################
+# @berif 打印 help 信息
 def usage( ):
-    print(' -s  指定起始行号，默认：1')
-    print(' -e  指定结束列号，默认：1')
-    print(' -o  指定输出文件名，默认：out.xlsx')
-    print(' -p  指定 sheet，默认：1')
-    print(' -t  指定标题行号,默认：1')
-    print(' -m  指定标题行号,默认：row')
+    print(' Usage: python3 fetch_excel [-s start-index] [-e end-index] [-m row/col] [-o *.xlsx] [-t title-index] [-p page-index]')
+    print(' options:')    
+    print(' -s  提取行或列的起始位置，e.g. 1,2,3,..., def: 1')
+    print(' -e  提取行或列的结束位置，e.g. 1,2,3,..., def: 1')
+    print(' -o  指定汇总输出文件，e.g. my-out.xlsx ，def: out.xlsx')
+    print(' -p  指定输入文件中的表序号，文件中第一张表对应为1，e.g. 1,2,3,..., def: 1')
+    print(' -t  指定提取的标题行/列的位置,标题仅提取一次，e.g. 1,2,3,..., def: 1')
+    print(' -m  指定提取模式，分为 row 和 col 模式, def : row')
+    print(' Fetch Excel v1.0.0  2020/2/2 ( leoyang20102013@163.com )')
 
+#################
 ## <<  程序入口 >> ##
 opts,args = getopt.getopt( sys.argv[1:] ,'s:e:t:p:o:m:h')
 start_line_index = 1
@@ -134,7 +142,7 @@ for op,value in opts:
             usage()
             sys.exit()    
     elif op == '-m':
-        if value == 'row' or value == 'column' :
+        if value == 'row' or value == 'col' :
             fetch_line_mode = value
         else:
             print ( ' 行列模式：无效参数 ')
