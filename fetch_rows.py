@@ -13,47 +13,18 @@ import getopt
 # 直接构造 list
 # for row in rows:
 #     line = [ col.value for col in row ]
-def fetch_row( file_name ,page_index ,line_index):
-    global start_line_index
-    wb = openpyxl.load_workbook(cur_path+'/'+file_name)
-    sheet_list = wb.get_sheet_names()
-
-    print ( 'len,index:',len( sheet_list ) , (page_index-1))
-
-    if len( sheet_list ) > (page_index-1) :
-        sheet = wb.get_sheet_by_name( sheet_list[page_index-1] )
-    else :
-        print ( ' 异常：指定表索引超出范围' )
-        return None
-
-    if sheet.max_row >= line_index :
-        rows = sheet.rows
-        cnt = 0 
-        for row in rows:
-            cnt = cnt + 1
-            if cnt == line_index:
-                return [ col.value for col in row ]
-    else :
-        print('异常：指定行索引超出范围')
-        return None
-
-def append_row(sheet,line):
-    if line != None:
-        row = sheet.max_row + 1
-        for i in  range(  len( line )  ):
-            sheet.cell( row ,i+1).value = line[i]
-    print (file,'......OK')
 
 # @berif 提取列数据
 # file_name               文件
 # page_index           表索引
-# column_index      列索引
-def fetch_column( file_name ,page_index ,column_index):
+# line_index      行列索引
+# line_mode，行列模式
+def fetch_line( file_name ,page_index ,line_index,line_mode):
     global start_line_index
+    max_limit = 0       # 标记行/列 模式下的最大范围
+    
     wb = openpyxl.load_workbook(cur_path+'/'+file_name)
     sheet_list = wb.get_sheet_names()
-
-    print ( 'len,index:',len( sheet_list ) , (page_index-1))
 
     if len( sheet_list ) > (page_index-1) :
         sheet = wb.get_sheet_by_name( sheet_list[page_index-1] )
@@ -61,26 +32,53 @@ def fetch_column( file_name ,page_index ,column_index):
         print ( ' 异常：指定表索引超出范围' )
         return None
 
-    if sheet.max_column  >= column_index :
-        columns = sheet.columns
-        cnt = 0 
-        for column in columns:
-            cnt = cnt + 1
-            if cnt == column_index:
-                return [ row.value for row in column ]
+    # 行列的最大访问范围
+    if line_mode == 'row':
+        max_limit = sheet.max_row
+    elif line_mode == 'column':
+        max_limit = sheet.max_column
+    else:
+        line_mode == 'row'
+        max_limit = sheet.max_row
+
+    if max_limit  >= line_index :
+        if line_mode == 'row':
+            rows = sheet.rows
+            cnt = 0 
+            for row in rows:
+                cnt = cnt + 1
+                if cnt == line_index:
+                    return [ col.value for col in row ]            
+        elif line_mode == 'column':
+            columns = sheet.columns
+            cnt = 0 
+            for column in columns:
+                cnt = cnt + 1
+                if cnt == line_index:
+                    return [ row.value for row in column ]
     else :
         print('异常：指定行索引超出范围')
         return None
 
-def append_column(sheet,line):
-    if line != None:
-        column = sheet.max_column + 1
-        for i in  range(  len( line )  ):
-            sheet.cell( i+1,column).value = line[i]
+##########################
+# sheet : 指定表
+# line_context，添加内容
+# line_mode,添加模式，行/列
+def append_line(sheet,line_context,line_mode):
+    if line_context != None:
+        if line_mode == 'row':
+            # 按行模式添加
+            row = sheet.max_row + 1
+            for i in  range(  len( line_context )  ):
+                sheet.cell( row ,i+1).value = line_context[i]
+        elif line_mode == 'column':
+            # 按列模式添加
+            column = sheet.max_column + 1
+            for i in  range(  len( line_context )  ):
+                sheet.cell( i+1,column).value = line_context[i]
+        else:
+            print (' 写入模式无效 ')
     print (file,'......OK')
-
-
-
 
 def usage( ):
     print(' -s  指定起始行号，默认：1')
@@ -88,13 +86,15 @@ def usage( ):
     print(' -o  指定输出文件名，默认：out.xlsx')
     print(' -p  指定 sheet，默认：1')
     print(' -t  指定标题行号,默认：1')
+    print(' -m  指定标题行号,默认：row')
 
 ## <<  程序入口 >> ##
-opts,args = getopt.getopt( sys.argv[1:] ,'s:e:t:p:o:h')
+opts,args = getopt.getopt( sys.argv[1:] ,'s:e:t:p:o:m:h')
 start_line_index = 1
 end_line_index = 1
 fetch_sheet_index = 1
 title_line_index = 1
+fetch_line_mode = 'row'
 out_file_name = 'out.xlsx'
 
 for op,value in opts:
@@ -103,28 +103,53 @@ for op,value in opts:
             start_line_index = int(value)
         else :
             print('起始行号：无效字符')
+            usage()
+            sys.exit()
     elif op == '-e':
         if value.isdigit():
             end_line_index = int(value)
         else :
             print('结束行号：无效字符')
+            usage()
+            sys.exit()
     elif op == '-t':
         if value.isdigit():
             title_line_index = int(value)
         else :
             print('标题行：无效字符')
+            usage()
+            sys.exit()
     elif op == '-p':
         if value.isdigit():
             fetch_sheet_index = int(value)
         else :
-            print('Sheet：无效字符')
+            print('表索引：无效字符')
+            usage()
+            sys.exit()
     elif op == '-o':
-        out_file_name = value
+        if value.find('.xlsx') > 0 :
+            out_file_name = value
+        else :
+            print ( '输出文件：无效格式 ')
+            usage()
+            sys.exit()    
+    elif op == '-m':
+        if value == 'row' or value == 'column' :
+            fetch_line_mode = value
+        else:
+            print ( ' 行列模式：无效参数 ')
+            usage()
+            sys.exit()
     elif op == '-h':
         usage()
         sys.exit()
 
-print( '标题行: %d\n指定表: %d\n起始行: %d \n结束行: %d\n输出文件: %s\n' % (title_line_index,fetch_sheet_index, start_line_index,end_line_index,out_file_name) )
+print( '表: %d  标题: %d' % (fetch_sheet_index,title_line_index,) )
+print( '模式：%s    起始行/列: %d  结束行/列: %d' % (fetch_line_mode,start_line_index,end_line_index) )
+print( '输出: %s' % (out_file_name) )
+
+if input('回车键开始，任意键退出...') !=  "":
+    sys.exit()
 
 ## 查询是否有文件，如果有该文件，执行删除，再重新建同名文件  
 cur_path  = sys.path[0]
@@ -148,26 +173,18 @@ for file in file_list :
     if (( file != out_file_name )  and  ( file[-4:] == 'xlsx' ) and ( not file[:2] == '.~' )):
          # 从 file 中提取指定内容
          # 提取标题栏，，加入输出文件（仅执行一次）
-        column_context = fetch_column( file ,1 ,3)
-        append_column(w_wb_sheet,column_context)
-        #  for i in callable:
-        print ( column_context )
-
-        # if title_line_index > 0 :
-        #     line = fetch_row(  file ,fetch_sheet_index,title_line_index )
-        #     append_row( w_wb_sheet , line )
-        #     title_line_index = 0
-        # # 提取指定行，加入输出文件
-        # if end_line_index > start_line_index :
-        #     # 多行提取
-        #     for i in range( 0,end_line_index - start_line_index + 1):
-        #         print('i=',int(i))
-        #         line = fetch_row(  file , fetch_sheet_index , (start_line_index + int(i)) )
-        #         append_row( w_wb_sheet , line )
-        # else :
-        #     # 单行提取,没有设置 target_row1，则默认为1，小于等于 start_line_index
-        #     line = fetch_row(  file , fetch_sheet_index , start_line_index )
-        #     append_row( w_wb_sheet , line )
-            
-
+        if title_line_index > 0 :
+            line_context = fetch_line( file , fetch_sheet_index ,title_line_index ,fetch_line_mode)
+            append_line( w_wb_sheet ,line_context ,fetch_line_mode )
+            title_line_index = 0
+        # 提取指定行，加入输出文件
+        if end_line_index > start_line_index :
+            # 多行提取
+            for i in range( 0,end_line_index - start_line_index + 1):
+                line_context = fetch_line( file , fetch_sheet_index , (start_line_index + int(i)) ,fetch_line_mode)
+                append_line( w_wb_sheet , line_context  ,fetch_line_mode )
+        else :
+            # 单行提取,没有设置 target_row1，则默认为1，小于等于 start_line_index
+            line_context = fetch_line( file , fetch_sheet_index , start_line_index ,fetch_line_mode)
+            append_line( w_wb_sheet , line_context ,fetch_line_mode )
 w_wb.save( file_name )
