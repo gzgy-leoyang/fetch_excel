@@ -8,7 +8,7 @@
 # any tracked files which get ignored after the change.
 #
 # Add by yj
-*.pro.user
+*.xlsx
 # add end 
 
 # Normal rules
