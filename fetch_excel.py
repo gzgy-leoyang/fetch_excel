@@ -80,7 +80,6 @@ def append_line(sheet,line_context,line_mode):
                 sheet.cell( i+1,column).value = line_context[i]
         else:
             print (' 写入模式无效 ')
-    print (file,'......OK')
 
 ############################
 # @berif 打印 help 信息
@@ -179,6 +178,7 @@ file_list = os.listdir(cur_path)
 for file in file_list :
     # 遍历文件的范围：排除输出文件，仅检查xlsx文件，且不是 .~*.xlsx 临时文件
     if (( file != out_file_name )  and  ( file[-4:] == 'xlsx' ) and ( not file[:2] == '.~' )):
+        print("Fetching....",file)
          # 从 file 中提取指定内容
          # 提取标题栏，，加入输出文件（仅执行一次）
         if title_line_index > 0 :
